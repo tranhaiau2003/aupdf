@@ -1084,7 +1084,6 @@ export const App: React.FC = () => {
         </div>
       )}
       <Header
-        sidecarState={sidecarState}
         activeDoc={activeDoc}
         onOpenPdf={handleOpenPdf}
         onSavePdf={handleSavePdf}
@@ -1232,7 +1231,6 @@ export const App: React.FC = () => {
         </div>
       </div>
       <StatusBar
-        sidecarState={sidecarState}
         docName={activeDoc?.name || null}
         currentPage={currentPage}
         pageCount={pageCount}

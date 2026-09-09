@@ -1,9 +1,8 @@
 import React from 'react';
-import { Cpu, FileText, ZoomIn, Loader2 } from 'lucide-react';
-import { SidecarState, PageBoxes } from '../types';
+import { FileText, ZoomIn, Loader2 } from 'lucide-react';
+import { PageBoxes } from '../types';
 
 interface StatusBarProps {
-  sidecarState: SidecarState;
   docName: string | null;
   currentPage: number;
   pageCount: number;
@@ -13,7 +12,6 @@ interface StatusBarProps {
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
-  sidecarState,
   docName,
   currentPage,
   pageCount,
@@ -21,16 +19,6 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   zoom,
   isProcessing
 }) => {
-  const status = sidecarState.status;
-  const engineDot =
-    status === 'ready' ? 'bg-emerald-500'
-    : status === 'starting' ? 'bg-amber-400 animate-pulse'
-    : 'bg-red-500';
-  const engineLabel =
-    status === 'ready' ? 'Engine sẵn sàng' + (sidecarState.info ? ' :' + sidecarState.info.port : '')
-    : status === 'starting' ? 'Engine đang khởi động...'
-    : 'Engine chưa kết nối';
-
   let sizeLabel = '';
   if (currentPageBoxes?.media) {
     const mmW = currentPageBoxes.media.w * 0.352778;
@@ -40,13 +28,6 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
   return (
     <div className="h-7 bg-[#1a1a1a] border-t border-[#2d2d2d] flex items-center px-3 gap-5 text-[11px] text-gray-400 shrink-0 select-none overflow-hidden">
-      {/* Engine */}
-      <span className="flex items-center gap-1.5 shrink-0" title="Trạng thái PDF engine">
-        <span className={`w-2 h-2 rounded-full ${engineDot}`} />
-        <Cpu className="w-3 h-3" />
-        <span>{engineLabel}</span>
-      </span>
-
       {/* Document */}
       {docName && (
         <>

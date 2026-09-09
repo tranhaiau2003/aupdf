@@ -1,13 +1,11 @@
 import React from 'react';
 import { 
   FolderOpen, Save, FilePlus, Play, CheckCircle2, 
-  AlertTriangle, RefreshCw, ZoomIn, ZoomOut, Maximize2,
-  Layers, Sliders, ShieldCheck
+  RefreshCw, ZoomIn, ZoomOut, Maximize2
 } from 'lucide-react';
-import { SidecarState, OpenedDocument } from '../types';
+import { OpenedDocument } from '../types';
 
 interface HeaderProps {
-  sidecarState: SidecarState;
   activeDoc: OpenedDocument | null;
   onOpenPdf: () => void;
   onSavePdf: () => void;
@@ -18,7 +16,6 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  sidecarState,
   activeDoc,
   onOpenPdf,
   onSavePdf,
@@ -107,24 +104,6 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#252525] border border-[#333] text-xs max-w-[320px] truncate">
-          {sidecarState.status === 'ready' ? (
-            <>
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              <span className="text-gray-300 font-medium truncate">Engine Sẵn Sàng (Port {sidecarState.info?.port})</span>
-            </>
-          ) : sidecarState.status === 'starting' ? (
-            <>
-              <span className="w-2 h-2 rounded-full bg-yellow-500 animate-spin"></span>
-              <span className="text-yellow-400">Đang khởi động Engine...</span>
-            </>
-          ) : (
-            <>
-              <span className="w-2 h-2 rounded-full bg-red-500"></span>
-              <span className="text-red-400">Engine Ngắt Kết Nối</span>
-            </>
-          )}
-        </div>
       </div>
     </header>
   );
