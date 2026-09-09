@@ -43,6 +43,7 @@ import {
 } from './types';
 import { apiClient } from './api/client';
 import { nanoid } from 'nanoid';
+import { FileText, Layers, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 // Type augmentation for window.api from preload
 declare global {
@@ -95,6 +96,7 @@ export const App: React.FC = () => {
   const [outputPreviewUrl, setOutputPreviewUrl] = useState<string | null>(null);
   const [layers, setLayers] = useState<LayerInfo[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [leftPanel, setLeftPanel] = useState<'pages' | 'layers' | 'none'>('pages');
   
   // Native menu/keyboard listeners are installed once. Route them through a
   // ref so they always use the latest document state instead of the initial
@@ -202,7 +204,12 @@ export const App: React.FC = () => {
           'view', 'organize', 'impose', 'boxes', 'bleed', 
           'nest', 'output_preview', 'preflight', 'vdp'
         ];
-        if (tools[toolIndex]) setActiveTool(tools[toolIndex]);
+        if (tools[toolIndex] === 'organize') {
+          setLeftPanel('pages');
+          setActiveTool('view');
+        } else if (tools[toolIndex]) {
+          setActiveTool(tools[toolIndex]);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -846,7 +853,8 @@ export const App: React.FC = () => {
         setActiveTool('view');
         break;
       case 'tool:organize':
-        setActiveTool('organize');
+        setLeftPanel('pages');
+        setActiveTool('view');
         break;
       case 'tool:impose':
         setActiveTool('impose');
@@ -879,7 +887,8 @@ export const App: React.FC = () => {
         setActiveTool('bon');
         break;
       case 'tool:layers':
-        setActiveTool('layers');
+        setLeftPanel('layers');
+        setActiveTool('view');
         break;
       case 'tool:knockout':
         setActiveTool('knockout');
@@ -888,6 +897,20 @@ export const App: React.FC = () => {
         setActiveTool('trimshift');
         break;
     }
+  };
+
+  const handleToolSelection = (tool: ActiveTool) => {
+    if (tool === 'organize') {
+      setLeftPanel('pages');
+      setActiveTool('view');
+      return;
+    }
+    if (tool === 'layers') {
+      setLeftPanel('layers');
+      setActiveTool('view');
+      return;
+    }
+    setActiveTool(tool);
   };
 
   actionHandlersRef.current = {
@@ -1077,13 +1100,56 @@ export const App: React.FC = () => {
         onSelectTab={handleSelectTab}
         onCloseTab={handleCloseTab}
       />
+
+      <ToolBar
+        activeTool={activeTool}
+        onSelectTool={handleToolSelection}
+      />
       
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Toolbar */}
-        <ToolBar
-          activeTool={activeTool}
-          onSelectTool={setActiveTool}
-        />
+        {/* Acrobat-style left navigation and contextual panel */}
+        <nav className="w-12 bg-[#171717] border-r border-[#303030] flex flex-col items-center py-2 gap-2 shrink-0">
+          <button
+            onClick={() => setLeftPanel(leftPanel === 'pages' ? 'none' : 'pages')}
+            className={`w-8 h-8 rounded flex items-center justify-center transition ${leftPanel === 'pages' ? 'bg-cyan-600/20 text-cyan-300 border border-cyan-500/50' : 'text-gray-400 hover:bg-[#292929] hover:text-white'}`}
+            title="Trang & sắp xếp trang"
+          >
+            <FileText className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setLeftPanel(leftPanel === 'layers' ? 'none' : 'layers')}
+            className={`w-8 h-8 rounded flex items-center justify-center transition ${leftPanel === 'layers' ? 'bg-cyan-600/20 text-cyan-300 border border-cyan-500/50' : 'text-gray-400 hover:bg-[#292929] hover:text-white'}`}
+            title="Layers"
+          >
+            <Layers className="w-4 h-4" />
+          </button>
+          <div className="flex-1" />
+          <button
+            onClick={() => setLeftPanel(leftPanel === 'none' ? 'pages' : 'none')}
+            className="w-8 h-8 rounded flex items-center justify-center text-gray-500 hover:bg-[#292929] hover:text-white"
+            title={leftPanel === 'none' ? 'Mở bảng bên trái' : 'Thu gọn bảng bên trái'}
+          >
+            {leftPanel === 'none' ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+          </button>
+        </nav>
+
+        {leftPanel !== 'none' && (
+          <aside className="w-[320px] bg-[#1b1b1b] border-r border-[#303030] shrink-0 flex flex-col min-w-0">
+            <div className="h-10 px-3 flex items-center justify-between border-b border-[#303030] text-xs font-semibold text-gray-200">
+              <span>{leftPanel === 'pages' ? 'Trang & Sắp Xếp' : 'Layers'}</span>
+              <button onClick={() => setLeftPanel('none')} className="text-gray-500 hover:text-white" title="Đóng bảng">×</button>
+            </div>
+            {leftPanel === 'pages' ? (
+              activeDoc ? <ThumbnailsGrid pageCount={pageCount} currentPage={currentPage} onSelectPage={handlePageChange} onApplyPages={handleApplyPages} pdfBytes={pdfBytes} compact /> : (
+                <div className="flex-1 flex items-center justify-center px-6 text-center text-xs text-gray-500">Mở một tài liệu để xem thumbnail trang.</div>
+              )
+            ) : (
+              activeDoc ? <LayersPanel layers={layers} onReload={loadLayers} onApplyVisibility={runLayerVisibility} onFlatten={runFlattenLayers} isProcessing={isProcessing} /> : (
+                <div className="flex-1 flex items-center justify-center px-6 text-center text-xs text-gray-500">Mở một tài liệu để xem layer.</div>
+              )
+            )}
+          </aside>
+        )}
         
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -1121,14 +1187,6 @@ export const App: React.FC = () => {
                     zoom={zoom}
                     onZoomChange={setZoom}
                     boxes={pageBoxes}
-                  />
-                  <ThumbnailsGrid
-                    pageCount={pageCount}
-                    currentPage={currentPage}
-                    onSelectPage={handlePageChange}
-                    onApplyPages={handleApplyPages}
-                    pdfBytes={pdfBytes}
-                    className="h-36 border-t border-[#2d2d2d]"
                   />
                 </div>
               ) : (

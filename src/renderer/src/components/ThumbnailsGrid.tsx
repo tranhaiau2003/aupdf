@@ -16,6 +16,7 @@ interface ThumbnailsGridProps {
   onApplyPages: (arrangement: PageItem[]) => void;
   className?: string;
   pdfBytes?: ArrayBuffer | null;
+  compact?: boolean;
 }
 
 export const ThumbnailsGrid: React.FC<ThumbnailsGridProps> = ({
@@ -24,7 +25,8 @@ export const ThumbnailsGrid: React.FC<ThumbnailsGridProps> = ({
   onSelectPage,
   onApplyPages,
   className,
-  pdfBytes
+  pdfBytes,
+  compact = false
 }) => {
   const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -167,7 +169,7 @@ export const ThumbnailsGrid: React.FC<ThumbnailsGridProps> = ({
       </div>
 
       {/* Pages Grid */}
-      <div className="flex-1 overflow-y-auto pt-3 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      <div className={`flex-1 overflow-y-auto pt-3 grid gap-3 ${compact ? 'grid-cols-2' : 'grid-cols-3 md:grid-cols-4 lg:grid-cols-6'}`}>
         {Array.from({ length: pageCount }, (_, i) => {
           const isSelected = selectedPages.has(i);
           const isCurrent = currentPage === i + 1;

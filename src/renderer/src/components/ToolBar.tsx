@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  Grid, LayoutGrid, Crop, Sparkles, Layers,
+  LayoutGrid, Crop, Sparkles,
   Eye, FileText, CheckSquare, Database, Columns, Stamp,
   Scissors, Box, Palette, MoveHorizontal
 } from 'lucide-react';
@@ -17,7 +17,6 @@ export const ToolBar: React.FC<ToolBarProps> = ({
 }) => {
   const tools: Array<{ id: ActiveTool; label: string; icon: React.ReactNode; badge?: string }> = [
     { id: 'view', label: 'Xem PDF', icon: <FileText className="w-4 h-4" /> },
-    { id: 'organize', label: 'Sắp xếp trang', icon: <Grid className="w-4 h-4" /> },
     { id: 'impose', label: 'Bình bài in', icon: <LayoutGrid className="w-4 h-4" />, badge: 'Chính' },
     { id: 'boxes', label: 'Hộp kích thước (Boxes)', icon: <Box className="w-4 h-4" /> },
     { id: 'bleed', label: 'Bù xén (Bleed)', icon: <Crop className="w-4 h-4" /> },
@@ -29,19 +28,18 @@ export const ToolBar: React.FC<ToolBarProps> = ({
     { id: 'vdp', label: 'In dữ liệu biến đổi', icon: <Database className="w-4 h-4" /> },
     { id: 'tile', label: 'Cắt khổ lớn (Tile)', icon: <Columns className="w-4 h-4" /> },
     { id: 'stamp', label: 'Số nhảy & Đóng dấu', icon: <Stamp className="w-4 h-4" /> },
-    { id: 'layers', label: 'Quản lý Layer', icon: <Layers className="w-4 h-4" /> },
     { id: 'knockout', label: 'Knockout & Lót trắng', icon: <Palette className="w-4 h-4" /> }
   ];
 
   return (
-    <div className="w-14 bg-[#141414] border-r border-[#2d2d2d] flex flex-col items-center py-2 gap-1.5 shrink-0 select-none z-10">
+    <div className="h-12 bg-[#161616] border-b border-[#303030] flex items-center gap-1 px-3 shrink-0 overflow-x-auto select-none z-10">
       {tools.map((t) => {
         const isActive = activeTool === t.id;
         return (
           <button
             key={t.id}
             onClick={() => onSelectTool(t.id)}
-            className={`group relative w-10 h-10 rounded-lg flex flex-col items-center justify-center transition ${
+            className={`group relative h-8 min-w-9 px-2 rounded-md flex items-center justify-center transition ${
               isActive 
                 ? 'bg-cyan-600/20 text-cyan-300 border border-cyan-500/50 shadow-sm shadow-cyan-900/20' 
                 : 'text-gray-400 hover:text-gray-200 hover:bg-[#202020]'
@@ -49,7 +47,7 @@ export const ToolBar: React.FC<ToolBarProps> = ({
             title={t.label}
           >
             {t.icon}
-            <span className="pointer-events-none absolute left-12 z-50 hidden whitespace-nowrap rounded bg-black px-2 py-1 text-[11px] text-white shadow-lg group-hover:block">
+            <span className="pointer-events-none absolute top-10 z-50 hidden whitespace-nowrap rounded bg-black px-2 py-1 text-[11px] text-white shadow-lg group-hover:block">
               {t.label}
             </span>
             {t.badge && (
