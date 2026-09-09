@@ -48,8 +48,8 @@ export interface BoxEdit {
 }
 
 export interface PageSizeEdit {
-  w: number;
-  h: number;
+  width: number;
+  height: number;
   align: 'center' | 'bottom-left' | 'top-left' | 'bottom-right' | 'top-right';
 }
 

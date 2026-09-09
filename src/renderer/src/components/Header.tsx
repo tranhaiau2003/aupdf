@@ -12,6 +12,7 @@ interface HeaderProps {
   onSaveAsPdf: () => void;
   zoom: number;
   onZoomChange: (z: number) => void;
+  onFitPage: () => void;
   isProcessing: boolean;
 }
 
@@ -22,6 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSaveAsPdf,
   zoom,
   onZoomChange,
+  onFitPage,
   isProcessing
 }) => {
   return (
@@ -91,6 +93,13 @@ export const Header: React.FC<HeaderProps> = ({
               title="Khổ 100%"
             >
               <Maximize2 className="w-3 h-3" />
+            </button>
+            <button
+              onClick={onFitPage}
+              className="ml-1 rounded border-l border-[#3a3a3a] px-1.5 py-1 text-[10px] font-bold text-cyan-300 hover:bg-[#333] hover:text-cyan-200"
+              title="Fit Page - vừa toàn bộ khổ giấy trong vùng xem"
+            >
+              FIT
             </button>
           </div>
         </div>

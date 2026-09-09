@@ -45,6 +45,13 @@ import { apiClient } from './api/client';
 import { nanoid } from 'nanoid';
 import { FileText, Layers, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
+interface HistorySnapshot {
+  path: string;
+  pageCount: number;
+  currentPage: number;
+  boxes: PageBoxes[];
+}
+
 // Type augmentation for window.api from preload
 declare global {
   interface Window {
@@ -98,6 +105,7 @@ export const App: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [leftPanel, setLeftPanel] = useState<'pages' | 'layers' | 'none'>('pages');
   const [leftPanelWidth, setLeftPanelWidth] = useState(320);
+  const historyRef = useRef<Record<string, { undo: HistorySnapshot[]; redo: HistorySnapshot[] }>>({});
   
   // Native menu/keyboard listeners are installed once. Route them through a
   // ref so they always use the latest document state instead of the initial
@@ -423,18 +431,7 @@ export const App: React.FC = () => {
         arrangement,
       });
       
-      // Reload the document
-      const file = await window.api.readPdf(response.out);
-      const boxesResponse = await apiClient.getBoxes(response.out);
-      
-      setDocuments(prev => prev.map(doc => 
-        doc.id === activeDocId 
-          ? { ...doc, path: response.out, pageCount: response.page_count, boxes: boxesResponse.pages, isDirty: true }
-          : doc
-      ));
-      setPageBoxes(boxesResponse.pages);
-      // Keep the viewer on a valid page after reorder/duplicate/delete.
-      setCurrentPage(prev => Math.max(1, Math.min(prev, response.page_count)));
+      await replaceActiveWithOutput(response.out);
     } catch (error) {
       console.error('Error applying pages:', error);
       toast.error('Lỗi khi áp dụng thay đổi trang: ' + (error as Error).message);
@@ -480,16 +477,7 @@ export const App: React.FC = () => {
         ...req,
       } as ApplyBoxesRequest);
       
-      // Reload current document
-      const file = await window.api.readPdf(response.out);
-      const boxesResponse = await apiClient.getBoxes(response.out);
-      
-      setDocuments(prev => prev.map(doc => 
-        doc.id === activeDocId 
-          ? { ...doc, path: response.out, boxes: boxesResponse.pages, isDirty: true }
-          : doc
-      ));
-      setPageBoxes(boxesResponse.pages);
+      await replaceActiveWithOutput(response.out);
     } catch (error) {
       console.error('Error applying boxes:', error);
       toast.error('Lỗi khi áp dụng boxes: ' + (error as Error).message);
@@ -549,15 +537,7 @@ export const App: React.FC = () => {
         ...req,
       } as BleedRequest);
       
-      const file = await window.api.readPdf(response.out);
-      const boxesResponse = await apiClient.getBoxes(response.out);
-      
-      setDocuments(prev => prev.map(doc => 
-        doc.id === activeDocId 
-          ? { ...doc, path: response.out, boxes: boxesResponse.pages, isDirty: true }
-          : doc
-      ));
-      setPageBoxes(boxesResponse.pages);
+      await replaceActiveWithOutput(response.out);
     } catch (error) {
       console.error('Error running bleed:', error);
       toast.error('Lỗi tạo bleed: ' + (error as Error).message);
@@ -634,6 +614,11 @@ export const App: React.FC = () => {
   // ==================== Layers / Stamp / Tile / VDP / Bon / Knockout ====================
 
   const replaceActiveWithOutput = async (outPath: string) => {
+    if (!activeDoc) return;
+    const history = historyRef.current[activeDoc.id] || { undo: [], redo: [] };
+    history.undo.push({ path: activeDoc.path, pageCount: activeDoc.pageCount, currentPage, boxes: activeDoc.boxes || pageBoxes });
+    history.redo = [];
+    historyRef.current[activeDoc.id] = history;
     const boxesResponse = await apiClient.getBoxes(outPath);
     const nextPageCount = boxesResponse.pages.length;
     const nextCurrentPage = Math.min(Math.max(currentPage, 1), Math.max(nextPageCount, 1));
@@ -652,6 +637,24 @@ export const App: React.FC = () => {
     setPageBoxes(boxesResponse.pages);
     setCurrentPage(nextCurrentPage);
   };
+
+  const restoreHistory = async (direction: 'undo' | 'redo') => {
+    if (!activeDoc || isProcessing) return;
+    const history = historyRef.current[activeDoc.id];
+    const source = history?.[direction];
+    if (!source?.length) return;
+    const snapshot = source.pop()!;
+    const other = direction === 'undo' ? history.redo : history.undo;
+    other.push({ path: activeDoc.path, pageCount: activeDoc.pageCount, currentPage, boxes: activeDoc.boxes || pageBoxes });
+    setDocuments(prev => prev.map(doc => doc.id === activeDoc.id ? { ...doc, path: snapshot.path, pageCount: snapshot.pageCount, currentPage: snapshot.currentPage, boxes: snapshot.boxes, isDirty: true } : doc));
+    loadedBytesPath.current = null;
+    setPageBoxes(snapshot.boxes);
+    setCurrentPage(snapshot.currentPage);
+    toast.success(direction === 'undo' ? 'Đã hoàn tác thay đổi.' : 'Đã làm lại thay đổi.');
+  };
+
+  const canUndo = !!activeDoc && (historyRef.current[activeDoc.id]?.undo.length || 0) > 0;
+  const canRedo = !!activeDoc && (historyRef.current[activeDoc.id]?.redo.length || 0) > 0;
 
   const openOutputAsNewTab = async (outPath: string, titlePrefix: string) => {
     const file = await window.api.readPdf(outPath);
@@ -914,6 +917,8 @@ export const App: React.FC = () => {
     setActiveTool(tool);
   };
 
+  const handleFitPage = () => window.dispatchEvent(new Event('aupdf:fit-page'));
+
   const startLeftPanelResize = (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
     const startX = event.clientX;
@@ -962,6 +967,8 @@ export const App: React.FC = () => {
         return (
           <BoxesPanel 
             currentPageBoxes={currentBoxInfo}
+            currentPage={currentPage}
+            pageCount={pageCount}
             onApplyBoxes={runBoxes}
             onAutoContentBBox={runAutoContentBBox}
             isProcessing={isProcessing}
@@ -1076,6 +1083,10 @@ export const App: React.FC = () => {
             zoom={zoom}
             onZoomChange={setZoom}
             boxes={pageBoxes}
+            onUndo={() => void restoreHistory('undo')}
+            onRedo={() => void restoreHistory('redo')}
+            canUndo={canUndo}
+            canRedo={canRedo}
           />
         );
     }
@@ -1106,6 +1117,7 @@ export const App: React.FC = () => {
         onSaveAsPdf={handleSaveAsPdf}
         zoom={zoom}
         onZoomChange={setZoom}
+        onFitPage={handleFitPage}
         isProcessing={isProcessing}
       />
       
@@ -1207,6 +1219,10 @@ export const App: React.FC = () => {
                     zoom={zoom}
                     onZoomChange={setZoom}
                     boxes={pageBoxes}
+                    onUndo={() => void restoreHistory('undo')}
+                    onRedo={() => void restoreHistory('redo')}
+                    canUndo={canUndo}
+                    canRedo={canRedo}
                   />
                 </div>
               ) : (
@@ -1232,6 +1248,10 @@ export const App: React.FC = () => {
                       zoom={zoom}
                       onZoomChange={setZoom}
                       boxes={pageBoxes}
+                      onUndo={() => void restoreHistory('undo')}
+                      onRedo={() => void restoreHistory('redo')}
+                      canUndo={canUndo}
+                      canRedo={canRedo}
                     />
                   </div>
                   <div className="w-80 border-l border-[#2d2d2d] bg-[#1e1e1e] shrink-0 overflow-y-auto">

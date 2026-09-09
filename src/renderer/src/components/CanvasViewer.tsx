@@ -3,7 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { 
   ChevronLeft, ChevronRight, Eye, Droplet, 
-  Maximize2, Box, Info, AlertTriangle
+  Maximize2, Box, Info, AlertTriangle, Undo2, Redo2
 } from 'lucide-react';
 import { PageBoxes, OutputSample } from '../types';
 import { apiClient } from '../api/client';
@@ -19,6 +19,10 @@ interface CanvasViewerProps {
   onPageChange: (p: number) => void;
   zoom: number;
   onZoomChange?: (z: number) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   boxes?: PageBoxes[];
 }
 
@@ -30,6 +34,10 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
   onPageChange,
   zoom,
   onZoomChange,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
   boxes
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -145,6 +153,25 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
     return () => el.removeEventListener('wheel', onWheel);
   }, [onZoomChange]);
 
+  // Header owns the global zoom controls; this event lets its Fit button use
+  // the viewer's real available area and the active PDF page dimensions.
+  useEffect(() => {
+    if (!onZoomChange) return;
+    const fitPage = async () => {
+      const container = containerRef.current;
+      if (!pdfDoc || !container || currentPage < 1 || currentPage > pdfDoc.numPages) return;
+      const page = await pdfDoc.getPage(currentPage);
+      const viewport = page.getViewport({ scale: 1 });
+      const padding = 48; // matches the scroll-area p-6 on each axis
+      const availableWidth = Math.max(1, container.clientWidth - padding);
+      const availableHeight = Math.max(1, container.clientHeight - padding);
+      const fitted = Math.min(4, Math.max(0.2, Math.min(availableWidth / viewport.width, availableHeight / viewport.height)));
+      onZoomChange(Math.round(fitted * 100) / 100);
+    };
+    window.addEventListener('aupdf:fit-page', fitPage);
+    return () => window.removeEventListener('aupdf:fit-page', fitPage);
+  }, [pdfDoc, currentPage, onZoomChange]);
+
   // Eyedropper Live Sampler
   const handleCanvasMouseMove = async (e: React.MouseEvent<HTMLDivElement>) => {
     if (!eyedropperActive || !docPath || !canvasRef.current) return;
@@ -210,10 +237,14 @@ export const CanvasViewer: React.FC<CanvasViewerProps> = ({
           </div>
 
           {currentBoxInfo && (
-            <span className="text-gray-400 font-mono hidden md:inline-block">
-              Khổ: {((currentBoxInfo.trim.w || currentBoxInfo.media.w) * 0.352778).toFixed(1)} x {((currentBoxInfo.trim.h || currentBoxInfo.media.h) * 0.352778).toFixed(1)} mm
+            <span className="hidden rounded-md border border-cyan-500/40 bg-cyan-950/40 px-2.5 py-1 font-mono text-xs font-bold text-cyan-100 shadow-sm shadow-cyan-950/40 md:inline-block">
+              {((currentBoxInfo.trim.w || currentBoxInfo.media.w) * 0.352778).toFixed(1)} × {((currentBoxInfo.trim.h || currentBoxInfo.media.h) * 0.352778).toFixed(1)} mm
             </span>
           )}
+          <div className="flex items-center gap-1 border-l border-[#3a3a3a] pl-2">
+            <button onClick={onUndo} disabled={!canUndo} className="rounded p-1.5 text-gray-300 hover:bg-[#333] hover:text-cyan-300 disabled:cursor-not-allowed disabled:opacity-30" title="Hoàn tác (Ctrl+Z)"><Undo2 className="w-4 h-4" /></button>
+            <button onClick={onRedo} disabled={!canRedo} className="rounded p-1.5 text-gray-300 hover:bg-[#333] hover:text-cyan-300 disabled:cursor-not-allowed disabled:opacity-30" title="Làm lại (Ctrl+Y)"><Redo2 className="w-4 h-4" /></button>
+          </div>
         </div>
 
         {/* Box Visibility Toggles & Eyedropper */}
