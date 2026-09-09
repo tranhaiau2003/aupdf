@@ -21,6 +21,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Build application
+        run: npm run build
       - name: Build and publish GitHub Release
         run: npx electron-builder --win nsis --x64 --publish always
         env:

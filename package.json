@@ -1,6 +1,6 @@
 {
   "name": "pdf-prepress-studio",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Desktop PDF Viewer & Imposition Tool for Prepress",
   "main": "out/main/index.js",
   "author": "Prepress Solutions",
