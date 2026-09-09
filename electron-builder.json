@@ -1,0 +1,71 @@
+{
+  "appId": "com.prepress.studio",
+  "productName": "Au PDF",
+  "fileAssociations": [
+    {
+      "ext": "pdf",
+      "name": "Au PDF Document",
+      "description": "PDF document opened with Au PDF",
+      "role": "Viewer"
+    },
+    {
+      "ext": ["png", "jpg", "jpeg", "webp", "bmp", "gif", "ico", "svg"],
+      "name": "Au PDF Importable Image",
+      "description": "Image imported into Au PDF",
+      "role": "Viewer"
+    }
+  ],
+  "directories": {
+    "output": "dist",
+    "buildResources": "resources"
+  },
+  "files": [
+    "out/**/*",
+    "resources/**/*",
+    "!**/*.map"
+  ],
+  "asarUnpack": [
+    "resources/sidecar/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "resources/sidecar",
+      "to": "sidecar",
+      "filter": ["**/*"]
+    },
+    {
+      "from": "resources/sparrow.exe",
+      "to": "sparrow.exe"
+    }
+  ],
+  "win": {
+    "artifactName": "Au-PDF-Setup-${version}.${ext}",
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      },
+      {
+        "target": "zip",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "resources/icon.ico",
+    "forceCodeSigning": false
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "deleteAppDataOnUninstall": false,
+    "include": "build/installer.nsh",
+    "uninstallDisplayName": "Au PDF"
+  },
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "tranhaiau2003",
+      "repo": "aupdf"
+    }
+  ]
+}
