@@ -97,6 +97,7 @@ export const App: React.FC = () => {
   const [layers, setLayers] = useState<LayerInfo[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [leftPanel, setLeftPanel] = useState<'pages' | 'layers' | 'none'>('pages');
+  const [leftPanelWidth, setLeftPanelWidth] = useState(320);
   
   // Native menu/keyboard listeners are installed once. Route them through a
   // ref so they always use the latest document state instead of the initial
@@ -913,6 +914,21 @@ export const App: React.FC = () => {
     setActiveTool(tool);
   };
 
+  const startLeftPanelResize = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = leftPanelWidth;
+    const onMove = (moveEvent: MouseEvent) => {
+      setLeftPanelWidth(Math.min(520, Math.max(240, startWidth + moveEvent.clientX - startX)));
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
   actionHandlersRef.current = {
     handleMenuAction,
     openPdfByPath,
@@ -1133,7 +1149,7 @@ export const App: React.FC = () => {
         </nav>
 
         {leftPanel !== 'none' && (
-          <aside className="w-[320px] bg-[#1b1b1b] border-r border-[#303030] shrink-0 flex flex-col min-w-0">
+          <aside style={{ width: leftPanelWidth }} className="relative bg-[#1b1b1b] border-r border-[#303030] shrink-0 flex flex-col min-w-0">
             <div className="h-10 px-3 flex items-center justify-between border-b border-[#303030] text-xs font-semibold text-gray-200">
               <span>{leftPanel === 'pages' ? 'Trang & Sắp Xếp' : 'Layers'}</span>
               <button onClick={() => setLeftPanel('none')} className="text-gray-500 hover:text-white" title="Đóng bảng">×</button>
@@ -1147,6 +1163,11 @@ export const App: React.FC = () => {
                 <div className="flex-1 flex items-center justify-center px-6 text-center text-xs text-gray-500">Mở một tài liệu để xem layer.</div>
               )
             )}
+            <div
+              onMouseDown={startLeftPanelResize}
+              className="absolute top-0 -right-1 z-30 h-full w-2 cursor-col-resize hover:bg-cyan-400/50 active:bg-cyan-400/70 transition"
+              title="Kéo để đổi độ rộng bảng"
+            />
           </aside>
         )}
         

@@ -37,8 +37,13 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           </span>
           <span className="shrink-0 font-mono">
             Trang {currentPage}/{pageCount}
-            {sizeLabel && <span className="text-gray-500"> · {sizeLabel}</span>}
           </span>
+          {sizeLabel && (
+            <span className="shrink-0 flex items-center gap-2 rounded-md border border-cyan-500/40 bg-cyan-950/40 px-2.5 py-1 font-mono text-cyan-100 shadow-sm shadow-cyan-950/40">
+              <span className="font-sans text-[10px] font-bold uppercase tracking-wide text-cyan-400">Khổ giấy</span>
+              <span className="text-xs font-bold">{sizeLabel}</span>
+            </span>
+          )}
         </>
       )}
 
