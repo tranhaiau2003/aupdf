@@ -103,7 +103,9 @@ export const App: React.FC = () => {
   const [outputPreviewUrl, setOutputPreviewUrl] = useState<string | null>(null);
   const [layers, setLayers] = useState<LayerInfo[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [leftPanel, setLeftPanel] = useState<'pages' | 'layers' | 'none'>('pages');
+  // Keep navigation panels collapsed when a document opens. Users can still
+  // reveal Pages/Arrange or Layers from the navigation buttons at any time.
+  const [leftPanel, setLeftPanel] = useState<'pages' | 'layers' | 'none'>('none');
   const [leftPanelWidth, setLeftPanelWidth] = useState(320);
   const historyRef = useRef<Record<string, { undo: HistorySnapshot[]; redo: HistorySnapshot[] }>>({});
   
@@ -967,8 +969,6 @@ export const App: React.FC = () => {
         return (
           <BoxesPanel 
             currentPageBoxes={currentBoxInfo}
-            currentPage={currentPage}
-            pageCount={pageCount}
             onApplyBoxes={runBoxes}
             onAutoContentBBox={runAutoContentBBox}
             isProcessing={isProcessing}
